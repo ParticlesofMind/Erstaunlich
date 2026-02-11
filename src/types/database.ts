@@ -21,6 +21,11 @@ export interface Database {
         Insert: Omit<GeneratedImage, 'id' | 'created_at'>
         Update: Partial<Omit<GeneratedImage, 'id'>>
       }
+      user_favorites: {
+        Row: UserFavorite
+        Insert: Omit<UserFavorite, 'id' | 'created_at'>
+        Update: Partial<Omit<UserFavorite, 'id'>>
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -70,4 +75,12 @@ export interface DictionaryEntry {
   word: Word
   definitions: Definition[]
   examples: Example[]
+}
+
+export interface UserFavorite {
+  id: string
+  user_id: string
+  word_id: string
+  word: string
+  created_at: string
 }
