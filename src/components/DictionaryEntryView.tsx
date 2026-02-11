@@ -45,6 +45,14 @@ function HighlightedText({ text, highlight }: { text: string; highlight: string 
 export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorite, onBack }: Props) {
   const { word, definitions, examples } = entry
 
+  const playPronunciation = () => {
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(word.word)
+    utterance.lang = 'de-DE'
+    utterance.rate = 0.85
+    window.speechSynthesis.speak(utterance)
+  }
+
   return (
     <div className="max-w-2xl mx-auto pb-8">
       {/* Header label */}
@@ -101,8 +109,8 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
       <section className="px-6 mt-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Aussprache</h2>
         <div className="flex items-center gap-3">
-          <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" aria-label="Play pronunciation">
-            <Volume2 className="w-5 h-5 text-gray-600" />
+          <button onClick={playPronunciation} className="p-2 rounded-full bg-brand-100 hover:bg-brand-200 transition-colors active:scale-95" aria-label="Aussprache abspielen">
+            <Volume2 className="w-5 h-5 text-brand-600" />
           </button>
           <span className="text-base text-gray-700">
             {word.pronunciation.split(' - ').map((syl, i, arr) => (

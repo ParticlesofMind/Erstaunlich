@@ -42,8 +42,13 @@ export default function StoryReader({ story }: Props) {
     })
   }, [])
 
-  // Split text into paragraphs
-  const paragraphs = story.text.split('\n').filter((p) => p.trim().length > 0)
+  // Split text into paragraphs, removing standalone page numbers
+  const paragraphs = story.text
+    .split('\n')
+    .filter((p) => {
+      const trimmed = p.trim()
+      return trimmed.length > 0 && !/^\d{1,2}$/.test(trimmed)
+    })
 
   return (
     <div className="max-w-2xl mx-auto pb-24 md:pb-8">
@@ -89,7 +94,9 @@ export default function StoryReader({ story }: Props) {
           {paragraphs.map((paragraph, i) => (
             <p
               key={i}
-              className="text-[15px] md:text-base leading-[1.85] text-gray-800 mb-4 first-letter:text-lg first-letter:font-semibold selection:bg-brand-100 selection:text-brand-900"
+              className={`text-[15px] md:text-base leading-[1.85] text-gray-800 mb-5 selection:bg-brand-100 selection:text-brand-900 ${
+                i === 0 ? 'first-letter:text-2xl first-letter:font-bold first-letter:text-brand-700 first-letter:float-left first-letter:mr-1 first-letter:mt-0.5' : ''
+              }`}
             >
               {paragraph}
             </p>

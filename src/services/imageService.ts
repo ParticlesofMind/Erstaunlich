@@ -187,28 +187,16 @@ async function generateViaHuggingFace(
 
 async function generateViaPollinations(
   prompt: string,
-  exampleId?: string,
+  _exampleId?: string,
 ): Promise<ImageGenResult> {
-  const encodedPrompt = encodeURIComponent(prompt)
+  // Truncate prompt to avoid overly long URLs
+  const shortPrompt = prompt.length > 500 ? prompt.slice(0, 500) : prompt
+  const encodedPrompt = encodeURIComponent(shortPrompt)
   const seed = Math.floor(Math.random() * 2_147_483_647)
   const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${seed}&model=flux&nologo=true`
 
-  // Pollinations returns an image directly at the URL.
-  // We fetch it to: a) verify it works, b) get a blob for caching.
-  const res = await fetch(imageUrl)
-
-  if (!res.ok) {
-    throw new Error(`Bildgenerierung fehlgeschlagen (Pollinations ${res.status})`)
-  }
-
-  const blob = await res.blob()
-  let url = URL.createObjectURL(blob)
-
-  // Cache if we have an example ID
-  if (exampleId) {
-    const cached = await cacheImage(blob, exampleId, prompt)
-    if (cached) url = cached
-  }
-
-  return { url, prompt, provider: 'pollinations', cached: !!exampleId }
+  // Pollinations serves the image directly at the URL.
+  // Return it without fetching to avoid CORS/timeout issues.
+  // The <img> tag will load it directly.
+  return { url: imageUrl, prompt, provider: 'pollinations', cached: false }
 }
