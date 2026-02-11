@@ -1,9 +1,10 @@
-import { Home, Search, Heart, Settings } from 'lucide-react'
+import { Home, Search, Heart, BookOpen, Settings } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const links = [
   { id: '/', label: 'Home', icon: Home },
   { id: '/search', label: 'Suche', icon: Search },
+  { id: '/stories', label: 'Kurzgeschichten', icon: BookOpen },
   { id: '/favorites', label: 'Favoriten', icon: Heart },
   { id: '/settings', label: 'Einstellungen', icon: Settings },
 ] as const

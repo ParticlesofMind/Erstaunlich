@@ -195,6 +195,7 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
                   exampleText={ex.text}
                   definition={definitions[0]?.text}
                   existingUrl={ex.image_url}
+                  exampleId={ex.id}
                   size="md"
                 />
               </div>

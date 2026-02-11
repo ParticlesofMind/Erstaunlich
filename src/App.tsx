@@ -6,6 +6,8 @@ import WordPage from './pages/WordPage'
 import SearchPage from './pages/SearchPage'
 import FavoritesPage from './pages/FavoritesPage'
 import SettingsPage from './pages/SettingsPage'
+import StoriesPage from './pages/StoriesPage'
+import StoryPage from './pages/StoryPage'
 import { configureImageService } from './services/imageService'
 
 function App() {
@@ -14,16 +16,6 @@ function App() {
     const hfToken = localStorage.getItem('erstaunlich-hf-token')
     if (hfToken) {
       configureImageService({ huggingfaceToken: hfToken })
-    }
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-    if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder')) {
-      configureImageService({
-        provider: 'supabase-edge',
-        supabaseUrl,
-        supabaseAnonKey,
-      })
     }
   }, [])
 
@@ -35,6 +27,8 @@ function App() {
           <Route path="/word/:id" element={<WordPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/stories" element={<StoriesPage />} />
+          <Route path="/stories/:id" element={<StoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

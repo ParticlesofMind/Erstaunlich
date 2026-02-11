@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Database, Globe, Info, ExternalLink, Sparkles, Key, Check } from 'lucide-react'
-import { configureImageService, isImageGenAvailable } from '../services/imageService'
+import { Database, Globe, Info, ExternalLink, Sparkles, Key, Check, Zap } from 'lucide-react'
+import { configureImageService, getActiveProvider } from '../services/imageService'
 
 export default function SettingsPage() {
   const [hfToken, setHfToken] = useState(() => localStorage.getItem('erstaunlich-hf-token') || '')
@@ -20,7 +20,7 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const imgAvailable = isImageGenAvailable()
+  const activeProvider = getActiveProvider()
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
@@ -35,16 +35,35 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-gray-900">KI-Bildgenerierung</h3>
-              <p className="text-xs text-gray-400">Bilder mit HuggingFace FLUX generieren</p>
+              <p className="text-xs text-gray-400">FLUX-basierte Bildgenerierung</p>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${imgAvailable ? 'bg-green-400' : 'bg-gray-300'}`} />
-              <span className="text-xs text-gray-500">{imgAvailable ? 'Aktiv' : 'Nicht konfiguriert'}</span>
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <span className="text-xs text-gray-500">
+                {activeProvider === 'huggingface' ? 'FLUX.1' : 'Pollinations'}
+              </span>
             </div>
           </div>
           <div className="pl-12 space-y-3">
+            {/* Current provider info */}
+            <div className="bg-gradient-to-r from-brand-50 to-purple-50 rounded-lg p-3 border border-brand-100/60">
+              <div className="flex items-center gap-2 mb-1">
+                <Zap className="w-3.5 h-3.5 text-brand-600" />
+                <span className="text-xs font-semibold text-brand-700">
+                  {activeProvider === 'huggingface'
+                    ? 'FLUX.1-schnell via HuggingFace'
+                    : 'FLUX via Pollinations (kostenlos)'}
+                </span>
+              </div>
+              <p className="text-[10px] text-brand-600/80 leading-relaxed">
+                {activeProvider === 'huggingface'
+                  ? 'Schnelle, hochwertige Bildgenerierung über die HuggingFace Inference API.'
+                  : 'Bilder funktionieren sofort ohne Token. Für schnellere Generierung einen HuggingFace Token hinzufügen.'}
+              </p>
+            </div>
+
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">HuggingFace API Token</label>
+              <label className="text-xs text-gray-500 mb-1 block">HuggingFace API Token (optional)</label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Key className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -77,9 +96,8 @@ export default function SettingsPage() {
               </a>
             </div>
             <p className="text-[10px] text-gray-400 leading-relaxed">
-              Mit einem HuggingFace Token werden KI-Bilder für Beispielsätze generiert.
-              Das FLUX.1-schnell Modell ist kostenlos nutzbar. Bilder können jederzeit
-              neu generiert werden.
+              Ein HuggingFace Token ermöglicht schnellere Bildgenerierung via FLUX.1-schnell.
+              Ohne Token wird Pollinations.ai als kostenloser Dienst genutzt.
             </p>
           </div>
         </div>
