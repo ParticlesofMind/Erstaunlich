@@ -1,37 +1,205 @@
-export interface Database {
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
   public: {
     Tables: {
-      words: {
-        Row: Word
-        Insert: Partial<Word> & Pick<Word, 'word'>
-        Update: Partial<Word>
-      }
       definitions: {
-        Row: Definition
-        Insert: Partial<Definition> & Pick<Definition, 'word_id' | 'text'>
-        Update: Partial<Definition>
+        Row: {
+          id: string
+          order: number
+          text: string
+          word_id: string
+        }
+        Insert: {
+          id: string
+          order?: number
+          text: string
+          word_id: string
+        }
+        Update: {
+          id?: string
+          order?: number
+          text?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "definitions_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       examples: {
-        Row: Example
-        Insert: Partial<Example> & Pick<Example, 'word_id' | 'text'>
-        Update: Partial<Example>
+        Row: {
+          highlighted_word: string
+          id: string
+          image_prompt: string | null
+          image_url: string | null
+          order: number
+          text: string
+          word_id: string
+        }
+        Insert: {
+          highlighted_word?: string
+          id: string
+          image_prompt?: string | null
+          image_url?: string | null
+          order?: number
+          text: string
+          word_id: string
+        }
+        Update: {
+          highlighted_word?: string
+          id?: string
+          image_prompt?: string | null
+          image_url?: string | null
+          order?: number
+          text?: string
+          word_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "examples_word_id_fkey"
+            columns: ["word_id"]
+            isOneToOne: false
+            referencedRelation: "words"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       generated_images: {
-        Row: GeneratedImage
-        Insert: Omit<GeneratedImage, 'id' | 'created_at'>
-        Update: Partial<Omit<GeneratedImage, 'id'>>
+        Row: {
+          created_at: string
+          example_id: string | null
+          id: string
+          prompt: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          example_id?: string | null
+          id?: string
+          prompt: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          example_id?: string | null
+          id?: string
+          prompt?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_images_example_id_fkey"
+            columns: ["example_id"]
+            isOneToOne: false
+            referencedRelation: "examples"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_favorites: {
-        Row: UserFavorite
-        Insert: Omit<UserFavorite, 'id' | 'created_at'>
-        Update: Partial<Omit<UserFavorite, 'id'>>
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          word: string
+          word_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          word: string
+          word_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          word?: string
+          word_id?: string
+        }
+        Relationships: []
+      }
+      words: {
+        Row: {
+          antonyms: string[]
+          audio_url: string | null
+          category: string
+          created_at: string
+          difficulty: number
+          id: string
+          pronunciation: string
+          source: string
+          syllables: string
+          synonyms: string[]
+          updated_at: string
+          word: string
+          word_type: string
+        }
+        Insert: {
+          antonyms?: string[]
+          audio_url?: string | null
+          category?: string
+          created_at?: string
+          difficulty?: number
+          id: string
+          pronunciation?: string
+          source?: string
+          syllables?: string
+          synonyms?: string[]
+          updated_at?: string
+          word: string
+          word_type?: string
+        }
+        Update: {
+          antonyms?: string[]
+          audio_url?: string | null
+          category?: string
+          created_at?: string
+          difficulty?: number
+          id?: string
+          pronunciation?: string
+          source?: string
+          syllables?: string
+          synonyms?: string[]
+          updated_at?: string
+          word?: string
+          word_type?: string
+        }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+// ── Convenience aliases used throughout the app ──
 
 export interface Word {
   id: string
@@ -40,7 +208,7 @@ export interface Word {
   syllables: string
   word_type: string
   category: string
-  difficulty: number // 1-5
+  difficulty: number
   audio_url?: string
   synonyms: string[]
   antonyms: string[]
