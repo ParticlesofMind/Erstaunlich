@@ -1,5 +1,6 @@
-import { Home, Search, Heart, BookOpen, Settings } from 'lucide-react'
+import { Home, Search, Heart, BookOpen, Settings, LogIn, LogOut, User } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuthContext } from '../contexts/AuthContext'
 
 const links = [
   { id: '/', label: 'Home', icon: Home },
@@ -12,6 +13,7 @@ const links = [
 export default function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, signOut } = useAuthContext()
 
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen sticky top-0 border-r border-gray-200 bg-white px-4 py-6">
@@ -47,11 +49,40 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Auth section */}
+      <div className="border-t border-gray-100 pt-4 mt-2 space-y-2">
+        {user ? (
+          <>
+            <div className="flex items-center gap-2 px-3 py-2">
+              <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center">
+                <User className="w-3.5 h-3.5 text-brand-600" />
+              </div>
+              <span className="text-xs text-gray-600 truncate">{user.email}</span>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              Abmelden
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => navigate('/auth')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-600 hover:bg-brand-50 transition-all"
+          >
+            <LogIn className="w-5 h-5" />
+            Anmelden
+          </button>
+        )}
+      </div>
+
       {/* Footer */}
-      <div className="text-xs text-gray-400 px-2">
+      <div className="text-xs text-gray-400 px-2 mt-4">
         Erstaunlich Dictionary
         <br />
-        <span className="text-gray-300">v0.1.0</span>
+        <span className="text-gray-300">v0.2.0</span>
       </div>
     </aside>
   )

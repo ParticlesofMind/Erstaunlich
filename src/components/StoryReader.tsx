@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { ArrowLeft, BookOpen, User } from 'lucide-react'
+import { ArrowLeft, BookOpen, User, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { Story } from '../data/stories'
 import WordPopup from './WordPopup'
@@ -42,6 +42,10 @@ export default function StoryReader({ story }: Props) {
     })
   }, [])
 
+  // Estimate reading time (~200 words/min for German)
+  const wordCount = story.text.split(/\s+/).length
+  const readingMinutes = Math.max(1, Math.round(wordCount / 200))
+
   // Split text into paragraphs, removing standalone page numbers
   const paragraphs = story.text
     .split('\n')
@@ -72,43 +76,80 @@ export default function StoryReader({ story }: Props) {
         </div>
       </div>
 
-      {/* Story info banner */}
-      <div className="mx-4 mt-5 mb-6 bg-gradient-to-r from-brand-50 to-purple-50 rounded-2xl p-5 border border-brand-100/60">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{story.title}</h2>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <User className="w-4 h-4" />
-          <span>{story.author}</span>
+      {/* Story cover / info banner */}
+      <div className="mx-4 mt-6 mb-8 bg-gradient-to-br from-brand-50 via-purple-50 to-indigo-50 rounded-2xl p-6 md:p-8 border border-brand-100/60">
+        <div className="flex items-center gap-2 text-xs text-brand-500 font-medium mb-3 uppercase tracking-wider">
+          <BookOpen className="w-3.5 h-3.5" />
+          Kurzgeschichte
         </div>
-        <p className="text-xs text-brand-600/70 mt-3 flex items-center gap-1.5">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
-          Doppelklick auf ein Wort → Definition anzeigen
-        </p>
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3 leading-tight">{story.title}</h2>
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <User className="w-4 h-4" />
+            {story.author}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="w-4 h-4" />
+            ~{readingMinutes} Min.
+          </span>
+        </div>
+        <div className="mt-4 pt-4 border-t border-brand-100/60">
+          <p className="text-xs text-brand-600/70 flex items-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+            Doppelklick auf ein Wort → Definition anzeigen
+          </p>
+        </div>
       </div>
 
       {/* Story text */}
       <div
-        className="px-5 md:px-8 select-text cursor-text"
+        className="px-6 md:px-10 select-text cursor-text"
         onDoubleClick={handleDoubleClick}
       >
-        <article className="prose prose-gray max-w-none">
-          {paragraphs.map((paragraph, i) => (
-            <p
-              key={i}
-              className={`text-[15px] md:text-base leading-[1.85] text-gray-800 mb-5 selection:bg-brand-100 selection:text-brand-900 ${
-                i === 0 ? 'first-letter:text-2xl first-letter:font-bold first-letter:text-brand-700 first-letter:float-left first-letter:mr-1 first-letter:mt-0.5' : ''
-              }`}
-            >
-              {paragraph}
-            </p>
-          ))}
+        <article className="max-w-none">
+          {paragraphs.map((paragraph, i) => {
+            const trimmed = paragraph.trim()
+
+            // Detect dialogue lines (start with „ or " or —)
+            const isDialogue = /^[„""–—]/.test(trimmed)
+
+            return (
+              <p
+                key={i}
+                className={`
+                  text-[16px] md:text-[17px] leading-[1.9] md:leading-[2] text-gray-800 mb-6
+                  selection:bg-brand-100 selection:text-brand-900
+                  font-[system-ui]
+                  ${i === 0 ? 'first-letter:text-4xl first-letter:font-bold first-letter:text-brand-700 first-letter:float-left first-letter:mr-2 first-letter:mt-1 first-letter:leading-none' : ''}
+                  ${isDialogue ? 'pl-4 border-l-2 border-brand-200/60' : ''}
+                `}
+              >
+                {paragraph}
+              </p>
+            )
+          })}
         </article>
       </div>
 
       {/* End marker */}
-      <div className="flex items-center justify-center gap-3 px-6 mt-10 mb-4">
-        <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs text-gray-400 font-medium">Ende</span>
-        <div className="h-px flex-1 bg-gray-200" />
+      <div className="flex items-center justify-center gap-4 px-6 mt-12 mb-6">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-lg text-gray-300">✦</span>
+          <span className="text-xs text-gray-400 font-medium tracking-wider uppercase">Ende</span>
+        </div>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+      </div>
+
+      {/* Back to stories button */}
+      <div className="flex justify-center px-6 mb-4">
+        <button
+          onClick={() => navigate('/stories')}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Alle Geschichten
+        </button>
       </div>
 
       {/* Word definition popup */}

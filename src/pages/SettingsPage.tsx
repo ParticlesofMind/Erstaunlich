@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
-import { Database, Globe, Info, ExternalLink, Sparkles, Key, Check, Zap } from 'lucide-react'
+import { Database, Globe, Info, ExternalLink, Sparkles, Key, Check, Zap, User, LogIn, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { configureImageService, getActiveProvider } from '../services/imageService'
+import { useAuthContext } from '../contexts/AuthContext'
 
 export default function SettingsPage() {
   const [hfToken, setHfToken] = useState(() => localStorage.getItem('erstaunlich-hf-token') || '')
   const [saved, setSaved] = useState(false)
+  const { user, signOut } = useAuthContext()
+  const navigate = useNavigate()
 
   useEffect(() => {
     // Initialize image service with saved token
@@ -27,6 +31,40 @@ export default function SettingsPage() {
       <h1 className="text-xl font-bold text-gray-900 mb-6">Einstellungen</h1>
 
       <div className="space-y-3">
+        {/* Account */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center">
+              <User className="w-5 h-5 text-brand-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-gray-900">Konto</h3>
+              <p className="text-xs text-gray-400">
+                {user ? user.email : 'Nicht angemeldet'}
+              </p>
+            </div>
+          </div>
+          <div className="pl-12">
+            {user ? (
+              <button
+                onClick={() => signOut()}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Abmelden
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                Anmelden / Registrieren
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* AI Image Generation */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <div className="flex items-center gap-3 mb-3">

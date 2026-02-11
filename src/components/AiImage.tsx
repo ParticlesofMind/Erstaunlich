@@ -60,9 +60,9 @@ export default function AiImage({ word, exampleText, definition, existingUrl, ex
   }
 
   const sizeClasses = {
-    sm: 'w-16 h-16 rounded-lg',
-    md: 'w-20 h-20 md:w-24 md:h-24 rounded-xl',
-    lg: 'w-32 h-32 md:w-40 md:h-40 rounded-2xl',
+    sm: 'w-24 h-24 rounded-lg',
+    md: 'w-32 h-32 md:w-40 md:h-40 rounded-xl',
+    lg: 'w-48 h-48 md:w-56 md:h-56 rounded-2xl',
   }
 
   const sizeClass = sizeClasses[size]

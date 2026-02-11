@@ -81,3 +81,25 @@ create policy "Public insert for caching" on public.generated_images for insert 
 insert into storage.buckets (id, name, public)
 values ('dictionary-images', 'dictionary-images', true)
 on conflict do nothing;
+
+-- User favorites table (linked to Supabase Auth)
+create table if not exists public.user_favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  word_id text not null,
+  word text not null,
+  created_at timestamptz not null default now(),
+  unique(user_id, word_id)
+);
+
+create index if not exists idx_user_favorites_user on public.user_favorites (user_id);
+create index if not exists idx_user_favorites_word on public.user_favorites (word_id);
+
+alter table public.user_favorites enable row level security;
+
+create policy "Users can view own favorites"
+  on public.user_favorites for select using (auth.uid() = user_id);
+create policy "Users can insert own favorites"
+  on public.user_favorites for insert with check (auth.uid() = user_id);
+create policy "Users can delete own favorites"
+  on public.user_favorites for delete using (auth.uid() = user_id);

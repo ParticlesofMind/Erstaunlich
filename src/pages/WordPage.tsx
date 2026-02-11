@@ -38,7 +38,7 @@ export default function WordPage() {
       <DictionaryEntryView
         entry={entry}
         isFavorite={isFavorite(entry.word.id)}
-        onToggleFavorite={() => toggle(entry.word.id)}
+        onToggleFavorite={() => toggle(entry.word.id, entry.word.word)}
         onBack={() => navigate(-1)}
       />
     </div>

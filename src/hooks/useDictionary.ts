@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DictionaryEntry } from '../types/database'
 import { mockEntries, getEntry, getWordOfTheDay } from '../data/mockData'
 import { searchWords, fetchWord, getFeaturedWords } from '../services/wordService'
+import { supabase } from '../lib/supabase'
+import { useAuthContext } from '../contexts/AuthContext'
 
 export function useAllEntries() {
   const [entries, setEntries] = useState<DictionaryEntry[]>([])
@@ -167,6 +169,7 @@ export function useWordOfTheDay() {
 }
 
 export function useFavorites() {
+  const { user } = useAuthContext()
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('erstaunlich-favorites') || '[]')
@@ -174,18 +177,60 @@ export function useFavorites() {
       return []
     }
   })
+  const [loading, setLoading] = useState(false)
 
-  const toggle = useCallback((id: string) => {
-    setFavorites((prev) => {
-      const next = prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
-      localStorage.setItem('erstaunlich-favorites', JSON.stringify(next))
-      return next
-    })
-  }, [])
+  // Sync favorites from Supabase when user logs in
+  useEffect(() => {
+    if (!user) return
+
+    setLoading(true)
+    supabase
+      .from('user_favorites')
+      .select('word_id')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const ids = data.map((f) => f.word_id)
+          setFavorites(ids)
+          localStorage.setItem('erstaunlich-favorites', JSON.stringify(ids))
+        }
+        setLoading(false)
+      })
+  }, [user])
+
+  const toggle = useCallback(async (id: string, wordText?: string) => {
+    const isFav = favorites.includes(id)
+
+    // Optimistic update
+    const next = isFav ? favorites.filter((f) => f !== id) : [...favorites, id]
+    setFavorites(next)
+    localStorage.setItem('erstaunlich-favorites', JSON.stringify(next))
+
+    // Sync to Supabase if logged in
+    if (user) {
+      try {
+        if (isFav) {
+          await supabase
+            .from('user_favorites')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('word_id', id)
+        } else {
+          await supabase
+            .from('user_favorites')
+            .insert({ user_id: user.id, word_id: id, word: wordText || id })
+        }
+      } catch {
+        // Revert on error
+        setFavorites(favorites)
+        localStorage.setItem('erstaunlich-favorites', JSON.stringify(favorites))
+      }
+    }
+  }, [favorites, user])
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites])
 
   const favoriteEntries = mockEntries.filter((e) => favorites.includes(e.word.id))
 
-  return { favorites, toggle, isFavorite, favoriteEntries }
+  return { favorites, toggle, isFavorite, favoriteEntries, loading }
 }
