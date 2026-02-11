@@ -177,6 +177,7 @@ export function useFavorites() {
       return []
     }
   })
+  const [favoriteEntries, setFavoriteEntries] = useState<DictionaryEntry[]>([])
   const [loading, setLoading] = useState(false)
 
   // Sync favorites from Supabase when user logs in
@@ -197,6 +198,51 @@ export function useFavorites() {
         setLoading(false)
       })
   }, [user])
+
+  // Resolve favorite IDs to full DictionaryEntry objects
+  useEffect(() => {
+    if (favorites.length === 0) {
+      setFavoriteEntries([])
+      return
+    }
+
+    let cancelled = false
+
+    async function resolve() {
+      // Start with mock entries that match
+      const fromMock = mockEntries.filter((e) => favorites.includes(e.word.id))
+
+      // Find IDs not covered by mocks (Wiktionary entries)
+      const mockIds = new Set(fromMock.map((e) => e.word.id))
+      const remaining = favorites.filter((id) => !mockIds.has(id))
+
+      // Fetch Wiktionary entries in parallel
+      const fetched: DictionaryEntry[] = []
+      if (remaining.length > 0) {
+        const results = await Promise.allSettled(
+          remaining.map((id) => {
+            if (id.startsWith('wk-')) {
+              const word = decodeURIComponent(id.slice(3))
+              return fetchWord(word)
+            }
+            return Promise.resolve(null)
+          })
+        )
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            fetched.push(r.value)
+          }
+        }
+      }
+
+      if (!cancelled) {
+        setFavoriteEntries([...fromMock, ...fetched])
+      }
+    }
+
+    resolve()
+    return () => { cancelled = true }
+  }, [favorites])
 
   const toggle = useCallback(async (id: string, wordText?: string) => {
     const isFav = favorites.includes(id)
@@ -229,8 +275,6 @@ export function useFavorites() {
   }, [favorites, user])
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites])
-
-  const favoriteEntries = mockEntries.filter((e) => favorites.includes(e.word.id))
 
   return { favorites, toggle, isFavorite, favoriteEntries, loading }
 }
