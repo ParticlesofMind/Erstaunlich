@@ -5,6 +5,7 @@ import SearchBar from '../components/SearchBar'
 import WordCard from '../components/WordCard'
 import { useSearch } from '../hooks/useDictionary'
 import { searchWords } from '../services/wordService'
+import { getCategoryWords } from '../services/categoryCache'
 import type { DictionaryEntry } from '../types/database'
 
 const categories = [
@@ -101,7 +102,7 @@ export default function SearchPage() {
     let cancelled = false
 
     if (categoryName) {
-      // Browse category mode: load category words from Wiktionary
+      // Browse category mode: load category words from cache or Wiktionary
       setBrowsedCategory(categoryName)
       setCategoryFilter(filterParam || '')
       search('')
@@ -116,6 +117,16 @@ export default function SearchPage() {
         return
       }
 
+      // Try cache first
+      const cached = getCategoryWords(categoryName)
+      if (cached.length > 0) {
+        setCategoryResults(cached)
+        setCategoryLoading(false)
+        setLoadedCategory(categoryName)
+        return
+      }
+
+      // Fall back to fetching if cache is empty
       setCategoryLoading(true)
       Promise.allSettled(cat.keywords.map((keyword) => searchWords(keyword)))
         .then((results) => {
@@ -279,14 +290,6 @@ export default function SearchPage() {
               <div className="flex flex-wrap items-center gap-3 justify-between">
                 {sourceResults.length > 0 && availableWordTypes.length > 1 && (
                   <div className="flex items-center gap-3 flex-wrap">
-                    {selectedWordTypes.length > 0 && (
-                      <button
-                        onClick={() => setSelectedWordTypes([])}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        Alle zurücksetzen
-                      </button>
-                    )}
                     <div className="flex flex-wrap gap-2">
                       {availableWordTypes.map((wt) => {
                         const isSelected = selectedWordTypes.includes(wt)

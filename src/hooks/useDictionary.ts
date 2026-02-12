@@ -177,6 +177,13 @@ export function useFavorites() {
       return []
     }
   })
+  const [favoriteDates, setFavoriteDates] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('erstaunlich-favorite-dates') || '{}')
+    } catch {
+      return {}
+    }
+  })
   // Map word_id -> word text from Supabase (for resolving without parsing IDs)
   const [favoriteWords, setFavoriteWords] = useState<Record<string, string>>(() => {
     try {
@@ -199,7 +206,7 @@ export function useFavorites() {
     setLoading(true)
     supabase
       .from('user_favorites')
-      .select('word_id, word')
+      .select('word_id, word, created_at')
       .eq('user_id', user.id)
       .then(({ data, error }) => {
         if (error) {
@@ -208,17 +215,35 @@ export function useFavorites() {
         if (!error && data && data.length > 0) {
           const ids = data.map((f) => f.word_id)
           const wordMap: Record<string, string> = {}
+          const dateMap: Record<string, string> = {}
           for (const f of data) {
             wordMap[f.word_id] = f.word
+            dateMap[f.word_id] = f.created_at
           }
           setFavorites(ids)
           setFavoriteWords(wordMap)
+          setFavoriteDates(dateMap)
           localStorage.setItem('erstaunlich-favorites', JSON.stringify(ids))
           localStorage.setItem('erstaunlich-favorite-words', JSON.stringify(wordMap))
+          localStorage.setItem('erstaunlich-favorite-dates', JSON.stringify(dateMap))
         }
         setLoading(false)
       })
   }, [user])
+
+  // Backfill missing dates for existing favorites
+  useEffect(() => {
+    if (favorites.length === 0) return
+    const missing = favorites.filter((id) => !favoriteDates[id])
+    if (missing.length === 0) return
+    const now = new Date().toISOString()
+    const updated = { ...favoriteDates }
+    for (const id of missing) {
+      updated[id] = now
+    }
+    setFavoriteDates(updated)
+    localStorage.setItem('erstaunlich-favorite-dates', JSON.stringify(updated))
+  }, [favorites, favoriteDates])
 
   // Resolve favorite IDs to full DictionaryEntry objects
   useEffect(() => {
@@ -304,6 +329,22 @@ export function useFavorites() {
     setFavorites(next)
     localStorage.setItem('erstaunlich-favorites', JSON.stringify(next))
 
+    if (isFav) {
+      setFavoriteDates((prev) => {
+        const updated = { ...prev }
+        delete updated[id]
+        localStorage.setItem('erstaunlich-favorite-dates', JSON.stringify(updated))
+        return updated
+      })
+    } else {
+      const createdAt = new Date().toISOString()
+      setFavoriteDates((prev) => {
+        const updated = { ...prev, [id]: createdAt }
+        localStorage.setItem('erstaunlich-favorite-dates', JSON.stringify(updated))
+        return updated
+      })
+    }
+
     // Also update the word map for newly added favorites
     if (!isFav && wordText) {
       setFavoriteWords((prev) => {
@@ -338,5 +379,5 @@ export function useFavorites() {
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites])
 
-  return { favorites, toggle, isFavorite, favoriteEntries, loading: loading || resolving }
+  return { favorites, toggle, isFavorite, favoriteEntries, favoriteDates, loading: loading || resolving }
 }
