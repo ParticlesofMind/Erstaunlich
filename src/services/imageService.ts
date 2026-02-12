@@ -47,6 +47,42 @@ export function isImageGenAvailable(): boolean {
 
 // ─── Prompt builder ──────────────────────────────────────────────
 
+/** Deterministic seed from a string — same word always gives the same image */
+function hashSeed(text: string): number {
+  let hash = 0
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash) % 2_147_483_647
+}
+
+/** Style suffix applied to every noun thumbnail for a consistent look */
+const NOUN_STYLE =
+  'Cute 3D clay render of the object, soft plastic material, smooth rounded shapes, ' +
+  'subtle shadows, pastel color palette, studio lighting, light gray background, ' +
+  'single centered object, Pixar style, no text, no letters, no words.'
+
+/**
+ * Get a deterministic Pollinations URL for a noun thumbnail.
+ * No async call needed — the URL loads directly in an <img> tag.
+ */
+export function getNounThumbnailUrl(word: string, definition?: string, size = 512): string {
+  const context = definition ? ` (${definition.slice(0, 80)})` : ''
+  const prompt = `${word}${context}. ${NOUN_STYLE}`
+  const short = prompt.length > 500 ? prompt.slice(0, 500) : prompt
+  const seed = hashSeed(word.toLowerCase())
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(short)}?width=${size}&height=${size}&seed=${seed}&model=flux&nologo=true`
+}
+
+/**
+ * Build a prompt specifically for noun thumbnail images.
+ * Produces a consistent, recognizable 3D clay/Pixar style.
+ */
+export function buildNounThumbnailPrompt(word: string, definition?: string): string {
+  const context = definition ? ` (${definition.slice(0, 80)})` : ''
+  return `${word}${context}. ${NOUN_STYLE}`
+}
+
 export function buildImagePrompt(word: string, exampleText: string, definition?: string): string {
   const meaning = definition || exampleText
   return (
@@ -54,6 +90,30 @@ export function buildImagePrompt(word: string, exampleText: string, definition?:
     `Scene: ${exampleText.slice(0, 140)}. ` +
     `Style: soft watercolor sketch, pastel palette, white background, no text or letters.`
   )
+}
+
+/**
+ * Generate a deterministic noun thumbnail.
+ * Same word → same seed → same image every time.
+ */
+export async function generateNounThumbnail(
+  word: string,
+  definition?: string,
+): Promise<ImageGenResult> {
+  const prompt = buildNounThumbnailPrompt(word, definition)
+  const seed = hashSeed(word.toLowerCase())
+
+  // Try HuggingFace first
+  if (config.huggingfaceToken) {
+    try {
+      return await generateViaHuggingFace(prompt, undefined, { seed })
+    } catch (err) {
+      console.warn('HF failed for noun thumbnail, falling back:', err)
+    }
+  }
+
+  // Pollinations fallback with deterministic seed
+  return generateViaPollinations(prompt, undefined, { seed })
 }
 
 // ─── Cache layer (Supabase) ──────────────────────────────────────
@@ -143,17 +203,18 @@ const HF_API = `https://api-inference.huggingface.co/models/${HF_MODEL}`
 async function generateViaHuggingFace(
   prompt: string,
   exampleId?: string,
+  opts?: { seed?: number },
 ): Promise<ImageGenResult> {
+  const params: Record<string, unknown> = { width: 512, height: 512, num_inference_steps: 4 }
+  if (opts?.seed !== undefined) params.seed = opts.seed
+
   const res = await fetch(HF_API, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${config.huggingfaceToken}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      inputs: prompt,
-      parameters: { width: 512, height: 512, num_inference_steps: 4 },
-    }),
+    body: JSON.stringify({ inputs: prompt, parameters: params }),
   })
 
   if (!res.ok) {
@@ -188,11 +249,12 @@ async function generateViaHuggingFace(
 async function generateViaPollinations(
   prompt: string,
   _exampleId?: string,
+  opts?: { seed?: number },
 ): Promise<ImageGenResult> {
   // Truncate prompt to avoid overly long URLs
   const shortPrompt = prompt.length > 500 ? prompt.slice(0, 500) : prompt
   const encodedPrompt = encodeURIComponent(shortPrompt)
-  const seed = Math.floor(Math.random() * 2_147_483_647)
+  const seed = opts?.seed ?? Math.floor(Math.random() * 2_147_483_647)
   const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${seed}&model=flux&nologo=true`
 
   // Pollinations serves the image directly at the URL.
