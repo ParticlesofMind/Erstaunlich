@@ -26,15 +26,18 @@ function FrequencyDots({ level }: { level: number }) {
   )
 }
 
-function NounThumbnail({ word, definition }: { word: string; definition?: string }) {
+function NounThumbnail({ word, definition, size = 'sm' }: { word: string; definition?: string; size?: 'sm' | 'lg' }) {
   const [loaded, setLoaded] = useState(false)
   const [errored, setErrored] = useState(false)
-  const url = getNounThumbnailUrl(word, definition, 256)
+  const px = size === 'lg' ? 512 : 256
+  const url = getNounThumbnailUrl(word, definition, px)
 
   if (errored) return null
 
+  const sizeClass = size === 'lg' ? 'w-full h-full' : 'w-16 h-16 rounded-xl'
+
   return (
-    <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-50">
+    <div className={`${sizeClass} overflow-hidden flex-shrink-0 bg-gray-50 relative`}>
       <img
         src={url}
         alt={word}
@@ -44,7 +47,7 @@ function NounThumbnail({ word, definition }: { word: string; definition?: string
         onError={() => setErrored(true)}
       />
       {!loaded && !errored && (
-        <div className="w-full h-full bg-gradient-to-br from-brand-50 to-brand-100 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-brand-100 animate-pulse" />
       )}
     </div>
   )
@@ -93,7 +96,7 @@ export default function WordCard({ entry, onClick, compact = false }: Props) {
         {/* Thumbnail for nouns */}
         {isNoun && (
           <div className="w-28 md:w-36 flex-shrink-0">
-            <NounThumbnail word={word.word} definition={definitions[0]?.text} />
+            <NounThumbnail word={word.word} definition={definitions[0]?.text} size="lg" />
           </div>
         )}
         {/* Content */}
