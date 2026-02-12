@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom'
-import { Heart, LogIn } from 'lucide-react'
+import { Heart, LogIn, Loader2 } from 'lucide-react'
 import WordCard from '../components/WordCard'
 import { useFavorites } from '../hooks/useDictionary'
 import { useAuthContext } from '../contexts/AuthContext'
 
 export default function FavoritesPage() {
   const navigate = useNavigate()
-  const { favoriteEntries } = useFavorites()
+  const { favoriteEntries, loading } = useFavorites()
   const { user } = useAuthContext()
 
   return (
@@ -28,7 +28,11 @@ export default function FavoritesPage() {
         </button>
       )}
 
-      {favoriteEntries.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 text-brand-500 animate-spin" />
+        </div>
+      ) : favoriteEntries.length === 0 ? (
         <div className="text-center py-16">
           <Heart className="w-16 h-16 text-gray-200 mx-auto mb-4" />
           <p className="text-sm text-gray-500 mb-1">Noch keine Favoriten</p>

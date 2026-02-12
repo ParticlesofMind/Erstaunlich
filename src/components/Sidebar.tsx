@@ -1,4 +1,4 @@
-import { Home, Search, Heart, BookOpen, Settings, LogIn, LogOut, User } from 'lucide-react'
+import { Home, Search, Heart, BookOpen, Settings, LogIn, LogOut, User, Brain } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '../contexts/AuthContext'
 
@@ -7,6 +7,7 @@ const links = [
   { id: '/search', label: 'Suche', icon: Search },
   { id: '/stories', label: 'Kurzgeschichten', icon: BookOpen },
   { id: '/favorites', label: 'Favoriten', icon: Heart },
+  { id: '/quiz', label: 'Quiz', icon: Brain },
   { id: '/settings', label: 'Einstellungen', icon: Settings },
 ] as const
 

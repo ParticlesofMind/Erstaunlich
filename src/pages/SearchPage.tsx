@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BookOpen, Loader2 } from 'lucide-react'
 import SearchBar from '../components/SearchBar'
 import WordCard from '../components/WordCard'
@@ -6,7 +7,17 @@ import { useSearch } from '../hooks/useDictionary'
 
 export default function SearchPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { query, results, loading, search } = useSearch()
+
+  // Pre-populate search from URL ?q= parameter (e.g. from category cards)
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q && !query) {
+      search(q)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">

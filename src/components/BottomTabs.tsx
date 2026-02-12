@@ -1,4 +1,4 @@
-import { Home, Search, Heart, BookOpen, Settings } from 'lucide-react'
+import { Home, Search, Heart, BookOpen, Brain } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const tabs = [
@@ -6,7 +6,7 @@ const tabs = [
   { id: '/search', label: 'Suche', icon: Search },
   { id: '/stories', label: 'Lesen', icon: BookOpen },
   { id: '/favorites', label: 'Favoriten', icon: Heart },
-  { id: '/settings', label: 'Mehr', icon: Settings },
+  { id: '/quiz', label: 'Quiz', icon: Brain },
 ] as const
 
 export default function BottomTabs() {

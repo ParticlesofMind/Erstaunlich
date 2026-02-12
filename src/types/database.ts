@@ -209,6 +209,19 @@ export interface Word {
   word_type: string
   category: string
   difficulty: number
+  /** Frequency score 1-5 (1=rare, 5=very common) */
+  frequency: number
+  /** Article for nouns: der/die/das */
+  article: string
+  /** Plural form for nouns */
+  plural: string
+  /** Verb conjugation info */
+  conjugation: {
+    present3rd: string
+    pastSimple: string
+    pastParticiple: string
+    auxiliary: string
+  } | null
   audio_url?: string
   synonyms: string[]
   antonyms: string[]

@@ -15,6 +15,17 @@ export interface WiktionaryResult {
   synonyms: string[]
   antonyms: string[]
   translations: Record<string, string>
+  /** Genus for nouns: 'm' | 'f' | 'n' */
+  genus: string
+  /** Plural form for nouns */
+  plural: string
+  /** Verb conjugation: { present3rd, pastSimple, pastParticiple, auxiliary } */
+  conjugation: {
+    present3rd: string
+    pastSimple: string
+    pastParticiple: string
+    auxiliary: string
+  } | null
 }
 
 /** Search Wiktionary for German words matching a query */
@@ -70,6 +81,9 @@ function parseWikitext(word: string, text: string): WiktionaryResult {
     synonyms: extractSynonyms(text),
     antonyms: extractAntonyms(text),
     translations: extractTranslations(text),
+    genus: extractGenus(text),
+    plural: extractPlural(text),
+    conjugation: extractConjugation(text),
   }
 }
 
@@ -77,6 +91,53 @@ function extractWordType(text: string): string {
   // Match {{Wortart|Adjektiv|Deutsch}} or {{Wortart|Substantiv|Deutsch}}, etc.
   const match = text.match(/\{\{Wortart\|([^|]+)\|Deutsch\}\}/)
   return match?.[1] || ''
+}
+
+/** Extract grammatical gender (Genus) for nouns */
+function extractGenus(text: string): string {
+  // Look for {{Deutsch Substantiv Übersicht with Genus=m/f/n
+  const genusMatch = text.match(/Genus\s*=\s*([mfn])/)
+  if (genusMatch) return genusMatch[1]
+  // Also check for {{m}}, {{f}}, {{n}} after Substantiv header
+  const headerMatch = text.match(/Wortart\|Substantiv\|Deutsch\}\}[^\n]*\{\{([mfn])\}\}/)
+  if (headerMatch) return headerMatch[1]
+  return ''
+}
+
+/** Extract plural form for nouns */
+function extractPlural(text: string): string {
+  // Match Nominativ Plural=Häuser in the Substantiv Übersicht
+  const match = text.match(/Nominativ Plural\s*=\s*([^\n|]+)/)
+  if (match) {
+    const plural = match[1].trim()
+    // Handle "—" or "-" meaning no plural
+    if (plural === '—' || plural === '-' || plural === '—') return ''
+    return cleanWikiMarkup(plural)
+  }
+  // Also check {{Pl.}} in Worttrennung
+  const plMatch = text.match(/\{\{Pl\.\}\}\s*([^\n]+)/)
+  if (plMatch) return cleanWikiMarkup(plMatch[1].split(',')[0].trim())
+  return ''
+}
+
+/** Extract verb conjugation from Deutsch Verb Übersicht */
+function extractConjugation(text: string): WiktionaryResult['conjugation'] {
+  // Check if this is a verb
+  if (!text.match(/Wortart\|Verb\|Deutsch/)) return null
+
+  const present3rd = text.match(/Präsens_er[^=]*=\s*([^\n|]+)/)?.  [1]?.trim() || ''
+  const pastSimple = text.match(/Präteritum_ich[^=]*=\s*([^\n|]+)/)?.  [1]?.trim() || ''
+  const pastParticiple = text.match(/Partizip II[^=]*=\s*([^\n|]+)/)?.  [1]?.trim() || ''
+  const auxiliary = text.match(/Hilfsverb[^=]*=\s*([^\n|]+)/)?.  [1]?.trim() || 'haben'
+
+  if (!present3rd && !pastSimple && !pastParticiple) return null
+
+  return {
+    present3rd: cleanWikiMarkup(present3rd),
+    pastSimple: cleanWikiMarkup(pastSimple),
+    pastParticiple: cleanWikiMarkup(pastParticiple),
+    auxiliary: cleanWikiMarkup(auxiliary),
+  }
 }
 
 function extractPronunciation(text: string): string {

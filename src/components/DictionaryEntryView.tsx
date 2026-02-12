@@ -9,17 +9,22 @@ interface Props {
   onBack?: () => void
 }
 
-function DifficultyMeter({ level }: { level: number }) {
+const freqLabels = ['', 'selten', 'wenig', 'mittel', 'häufig', 'sehr häufig']
+
+function FrequencyMeter({ level }: { level: number }) {
   return (
-    <div className="flex gap-0.5 items-center">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div
-          key={i}
-          className={`w-3 h-4 rounded-sm ${
-            i <= level ? 'bg-brand-600' : 'bg-gray-200'
-          }`}
-        />
-      ))}
+    <div className="flex items-center gap-1.5">
+      <div className="flex gap-0.5 items-center">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className={`w-3 h-4 rounded-sm ${
+              i <= level ? 'bg-emerald-500' : 'bg-gray-200'
+            }`}
+          />
+        ))}
+      </div>
+      <span className="text-xs text-gray-400">{freqLabels[level] || ''}</span>
     </div>
   )
 }
@@ -86,7 +91,19 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
 
       {/* Word title */}
       <div className="px-6">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">{word.word}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
+          {word.article && word.word_type === 'Substantiv' ? (
+            <>
+              <span className="text-2xl md:text-3xl font-medium text-brand-500 mr-2">{word.article}</span>
+              {word.word}
+            </>
+          ) : word.word}
+        </h1>
+        {word.word_type === 'Substantiv' && word.plural && (
+          <p className="text-sm text-gray-500 mt-1">
+            Plural: <span className="font-medium text-gray-700">{word.plural}</span>
+          </p>
+        )}
       </div>
 
       {/* Meta pills */}
@@ -100,8 +117,8 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
           <span className="text-xs font-medium text-brand-600">{word.category}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Schwierigkeit</span>
-          <DifficultyMeter level={word.difficulty} />
+          <span className="text-xs text-gray-500">Häufigkeit</span>
+          <FrequencyMeter level={word.frequency} />
         </div>
       </div>
 
@@ -183,6 +200,33 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
               </div>
             </div>
           )}
+        </section>
+      )}
+
+      {/* Conjugation for verbs */}
+      {word.conjugation && word.word_type === 'Verb' && (
+        <section className="px-6 mt-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Konjugation</h2>
+          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">3. Person Präsens</span>
+              <span className="font-medium text-gray-800">{word.conjugation.present3rd}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Präteritum</span>
+              <span className="font-medium text-gray-800">{word.conjugation.pastSimple}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Partizip II</span>
+              <span className="font-medium text-gray-800">{word.conjugation.pastParticiple}</span>
+            </div>
+            {word.conjugation.auxiliary && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Hilfsverb</span>
+                <span className="font-medium text-gray-800">{word.conjugation.auxiliary}</span>
+              </div>
+            )}
+          </div>
         </section>
       )}
 

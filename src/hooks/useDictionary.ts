@@ -177,23 +177,44 @@ export function useFavorites() {
       return []
     }
   })
+  // Map word_id -> word text from Supabase (for resolving without parsing IDs)
+  const [favoriteWords, setFavoriteWords] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('erstaunlich-favorite-words') || '{}')
+    } catch {
+      return {}
+    }
+  })
   const [favoriteEntries, setFavoriteEntries] = useState<DictionaryEntry[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [resolving, setResolving] = useState(false)
 
   // Sync favorites from Supabase when user logs in
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
     supabase
       .from('user_favorites')
-      .select('word_id')
+      .select('word_id, word')
       .eq('user_id', user.id)
       .then(({ data, error }) => {
-        if (!error && data) {
+        if (error) {
+          console.error('Failed to load favorites from Supabase:', error.message)
+        }
+        if (!error && data && data.length > 0) {
           const ids = data.map((f) => f.word_id)
+          const wordMap: Record<string, string> = {}
+          for (const f of data) {
+            wordMap[f.word_id] = f.word
+          }
           setFavorites(ids)
+          setFavoriteWords(wordMap)
           localStorage.setItem('erstaunlich-favorites', JSON.stringify(ids))
+          localStorage.setItem('erstaunlich-favorite-words', JSON.stringify(wordMap))
         }
         setLoading(false)
       })
@@ -207,6 +228,7 @@ export function useFavorites() {
     }
 
     let cancelled = false
+    setResolving(true)
 
     async function resolve() {
       // Start with mock entries that match
@@ -221,28 +243,58 @@ export function useFavorites() {
       if (remaining.length > 0) {
         const results = await Promise.allSettled(
           remaining.map((id) => {
-            if (id.startsWith('wk-')) {
-              const word = decodeURIComponent(id.slice(3))
-              return fetchWord(word)
+            // Use the word text from Supabase if available, otherwise decode from ID
+            let wordText: string | null = favoriteWords[id] || null
+            if (!wordText && id.startsWith('wk-')) {
+              wordText = decodeURIComponent(id.slice(3))
+            }
+            if (wordText) {
+              return fetchWord(wordText)
             }
             return Promise.resolve(null)
           })
         )
-        for (const r of results) {
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i]
+          const id = remaining[i]
           if (r.status === 'fulfilled' && r.value) {
             fetched.push(r.value)
+          } else {
+            // Create a minimal fallback entry so the word at least shows up
+            const wordText = favoriteWords[id] || (id.startsWith('wk-') ? decodeURIComponent(id.slice(3)) : id)
+            fetched.push({
+              word: {
+                id,
+                word: wordText,
+                pronunciation: '',
+                syllables: '',
+                word_type: '',
+                category: 'Allgemein',
+                difficulty: 1,
+                frequency: 1,
+                article: '',
+                plural: '',
+                conjugation: null,
+                synonyms: [],
+                antonyms: [],
+                created_at: new Date().toISOString(),
+              },
+              definitions: [{ id: `${id}-d0`, word_id: id, text: 'Definition wird geladen…', order: 1 }],
+              examples: [],
+            })
           }
         }
       }
 
       if (!cancelled) {
         setFavoriteEntries([...fromMock, ...fetched])
+        setResolving(false)
       }
     }
 
     resolve()
     return () => { cancelled = true }
-  }, [favorites])
+  }, [favorites, favoriteWords])
 
   const toggle = useCallback(async (id: string, wordText?: string) => {
     const isFav = favorites.includes(id)
@@ -251,6 +303,15 @@ export function useFavorites() {
     const next = isFav ? favorites.filter((f) => f !== id) : [...favorites, id]
     setFavorites(next)
     localStorage.setItem('erstaunlich-favorites', JSON.stringify(next))
+
+    // Also update the word map for newly added favorites
+    if (!isFav && wordText) {
+      setFavoriteWords((prev) => {
+        const updated = { ...prev, [id]: wordText }
+        localStorage.setItem('erstaunlich-favorite-words', JSON.stringify(updated))
+        return updated
+      })
+    }
 
     // Sync to Supabase if logged in
     if (user) {
@@ -266,7 +327,8 @@ export function useFavorites() {
             .from('user_favorites')
             .insert({ user_id: user.id, word_id: id, word: wordText || id })
         }
-      } catch {
+      } catch (err) {
+        console.error('Failed to sync favorite to Supabase:', err)
         // Revert on error
         setFavorites(favorites)
         localStorage.setItem('erstaunlich-favorites', JSON.stringify(favorites))
@@ -276,5 +338,5 @@ export function useFavorites() {
 
   const isFavorite = useCallback((id: string) => favorites.includes(id), [favorites])
 
-  return { favorites, toggle, isFavorite, favoriteEntries, loading }
+  return { favorites, toggle, isFavorite, favoriteEntries, loading: loading || resolving }
 }

@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage'
 import StoriesPage from './pages/StoriesPage'
 import StoryPage from './pages/StoryPage'
 import AuthPage from './pages/AuthPage'
+import QuizPage from './pages/QuizPage'
 import { configureImageService } from './services/imageService'
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="/word/:id" element={<WordPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/quiz" element={<QuizPage />} />
             <Route path="/stories" element={<StoriesPage />} />
             <Route path="/stories/:id" element={<StoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />

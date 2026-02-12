@@ -25,14 +25,20 @@ function wiktionaryToEntry(wk: WiktionaryResult): DictionaryEntry {
     'Partikel': 'Partikel',
   }
 
-  // Estimate difficulty from word length, number of syllables, rarity
+  // Estimate frequency from word length + syllables (inverse of difficulty)
   const syllCount = (wk.syllables.match(/·/g) || []).length + 1
   const difficulty = Math.min(5, Math.max(1, Math.ceil(syllCount * 0.8 + (wk.word.length > 12 ? 1 : 0))))
+  // Frequency: shorter/simpler words are more common
+  const frequency = Math.max(1, 6 - difficulty)
 
   // Build pronunciation display from syllables
   const pronDisplay = wk.syllables
     ? wk.syllables.replace(/·/g, ' - ')
     : wk.word.split('').join(' ')
+
+  // Map genus to article
+  const articleMap: Record<string, string> = { m: 'der', f: 'die', n: 'das' }
+  const article = wk.wordType === 'Substantiv' ? (articleMap[wk.genus] || '') : ''
 
   const word: Word = {
     id: wordId,
@@ -42,6 +48,10 @@ function wiktionaryToEntry(wk: WiktionaryResult): DictionaryEntry {
     word_type: wk.wordType,
     category: categoryMap[wk.wordType] || wk.wordType || 'Allgemein',
     difficulty,
+    frequency,
+    article,
+    plural: wk.wordType === 'Substantiv' ? wk.plural : '',
+    conjugation: wk.conjugation,
     synonyms: wk.synonyms.slice(0, 8),
     antonyms: wk.antonyms.slice(0, 6),
     created_at: new Date().toISOString(),
