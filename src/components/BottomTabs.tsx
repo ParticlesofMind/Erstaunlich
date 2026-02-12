@@ -1,9 +1,8 @@
-import { Home, Search, Heart, BookOpen, Brain } from 'lucide-react'
+import { Search, Heart, BookOpen, Brain } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const tabs = [
-  { id: '/', label: 'Home', icon: Home },
-  { id: '/search', label: 'Suche', icon: Search },
+  { id: '/', label: 'Suche', icon: Search },
   { id: '/stories', label: 'Lesen', icon: BookOpen },
   { id: '/favorites', label: 'Favoriten', icon: Heart },
   { id: '/quiz', label: 'Quiz', icon: Brain },

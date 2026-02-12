@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
-import HomePage from './pages/HomePage'
 import WordPage from './pages/WordPage'
 import SearchPage from './pages/SearchPage'
 import FavoritesPage from './pages/FavoritesPage'
@@ -27,9 +26,8 @@ function App() {
       <BrowserRouter basename="/Erstaunlich">
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<SearchPage />} />
             <Route path="/word/:id" element={<WordPage />} />
-            <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/quiz" element={<QuizPage />} />
             <Route path="/stories" element={<StoriesPage />} />
