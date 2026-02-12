@@ -50,6 +50,25 @@ function HighlightedText({ text, highlight }: { text: string; highlight: string 
 export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorite, onBack }: Props) {
   const { word, definitions, examples } = entry
 
+  const sortedDefinitions = [...definitions].sort((a, b) => a.order - b.order)
+  const sortedExamples = [...examples].sort((a, b) => a.order - b.order)
+  const examplesByDefinition = new Map<string, typeof examples>()
+
+  for (const def of sortedDefinitions) {
+    examplesByDefinition.set(def.id, [])
+  }
+
+  if (sortedDefinitions.length === 1) {
+    examplesByDefinition.set(sortedDefinitions[0].id, sortedExamples)
+  } else if (sortedDefinitions.length > 1) {
+    sortedExamples.forEach((ex, index) => {
+      const orderIndex = (ex.order || index + 1) - 1
+      const defIndex = Math.abs(orderIndex) % sortedDefinitions.length
+      const defId = sortedDefinitions[defIndex].id
+      examplesByDefinition.get(defId)?.push(ex)
+    })
+  }
+
   const playPronunciation = () => {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(word.word)
@@ -59,7 +78,7 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
   }
 
   return (
-    <div className="max-w-2xl mx-auto pb-8">
+    <div className="max-w-4xl mx-auto pb-8">
       {/* Header label */}
       <div className="px-4 pt-3 pb-1">
         <span className="text-xs text-gray-400 tracking-wider uppercase">dictionary</span>
@@ -89,36 +108,49 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
         </button>
       </div>
 
-      {/* Word title */}
-      <div className="px-6">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
-          {word.article && word.word_type === 'Substantiv' ? (
-            <>
-              <span className="text-2xl md:text-3xl font-medium text-brand-500 mr-2">{word.article}</span>
-              {word.word}
-            </>
-          ) : word.word}
-        </h1>
-        {word.word_type === 'Substantiv' && word.plural && (
-          <p className="text-sm text-gray-500 mt-1">
-            Plural: <span className="font-medium text-gray-700">{word.plural}</span>
-          </p>
-        )}
-      </div>
-
-      {/* Meta pills */}
-      <div className="flex items-center gap-4 px-6 mt-3 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Wortart</span>
-          <span className="text-xs font-medium text-brand-600">{word.word_type}</span>
+      {/* Word title + Image */}
+      <div className="px-4 md:px-6 flex items-start gap-3 md:gap-4">
+        <div className="flex-1 min-w-0 max-w-xl">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
+            {word.article && word.word_type === 'Substantiv' ? (
+              <>
+                <span className="text-2xl md:text-3xl font-medium text-brand-500 mr-2">{word.article}</span>
+                {word.word}
+              </>
+            ) : word.word}
+          </h1>
+          {word.word_type === 'Substantiv' && word.plural && (
+            <p className="text-sm text-gray-500 mt-1">
+              Plural: <span className="font-medium text-gray-700">{word.plural}</span>
+            </p>
+          )}
+          
+          {/* Meta pills */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">Wortart</span>
+              <span className="text-xs font-medium text-brand-600">{word.word_type}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">Kategorie</span>
+              <span className="text-xs font-medium text-brand-600">{word.category}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">Häufigkeit</span>
+              <FrequencyMeter level={word.frequency} />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Kategorie</span>
-          <span className="text-xs font-medium text-brand-600">{word.category}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Häufigkeit</span>
-          <FrequencyMeter level={word.frequency} />
+        
+        {/* Main word illustration */}
+        <div className="flex-shrink-0">
+          <AiImage
+            word={word.word}
+            exampleText={definitions[0]?.text || word.word}
+            definition={definitions[0]?.text}
+            exampleId={`word-${word.id}`}
+            size="lg"
+          />
         </div>
       </div>
 
@@ -148,17 +180,35 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
       <section className="px-6 mt-8">
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Bedeutung</h2>
         <div className="space-y-3">
-          {definitions.map((def, i) => (
-            <div key={def.id} className="flex items-start gap-3 group">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500 mt-0.5">
-                {i + 1}
-              </span>
-              <p className="text-sm text-gray-700 leading-relaxed flex-1">{def.text}</p>
-              <button className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-600 transition-all" aria-label="Refresh">
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          {sortedDefinitions.map((def, i) => {
+            const defExamples = examplesByDefinition.get(def.id) || []
+            return (
+              <div key={def.id} className="flex items-start gap-3 group">
+                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500 mt-0.5">
+                  {i + 1}
+                </span>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-gray-700 leading-relaxed flex-1">{def.text}</p>
+                    <button className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-600 transition-all" aria-label="Refresh">
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {defExamples.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {defExamples.map((ex) => (
+                        <div key={ex.id} className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-700 leading-relaxed">
+                            <HighlightedText text={ex.text} highlight={ex.highlighted_word} />
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </section>
 
@@ -230,31 +280,6 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
         </section>
       )}
 
-      {/* Examples */}
-      {examples.length > 0 && (
-        <section className="px-6 mt-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Beispiele</h2>
-          <div className="space-y-5">
-            {examples.map((ex) => (
-              <div key={ex.id} className="flex gap-4 group">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    <HighlightedText text={ex.text} highlight={ex.highlighted_word} />
-                  </p>
-                </div>
-                <AiImage
-                  word={word.word}
-                  exampleText={ex.text}
-                  definition={definitions[0]?.text}
-                  existingUrl={ex.image_url}
-                  exampleId={ex.id}
-                  size="lg"
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   )
 }

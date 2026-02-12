@@ -2,9 +2,11 @@
  * AI Image Generation Service
  *
  * Providers (in priority order):
- *  1. HuggingFace Inference API  – FLUX.1-schnell (needs free HF token, best quality)
- *  2. Pollinations.ai             – Free, zero-config fallback (uses FLUX under the hood)
+ *  1. HuggingFace Inference API  – Stable Diffusion XL (needs free HF token)
+ *  2. Pollinations.ai             – Free, zero-config fallback (always works)
  *
+ * Pollinations is the primary provider due to reliability (no auth needed).
+ * New API: https://pollinations.ai/p/{prompt}
  * Generated images are cached in Supabase Storage + generated_images table.
  */
 
@@ -71,7 +73,7 @@ export function getNounThumbnailUrl(word: string, definition?: string, size = 51
   const prompt = `${word}${context}. ${NOUN_STYLE}`
   const short = prompt.length > 500 ? prompt.slice(0, 500) : prompt
   const seed = hashSeed(word.toLowerCase())
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(short)}?width=${size}&height=${size}&seed=${seed}&model=flux&nologo=true`
+  return `https://pollinations.ai/p/${encodeURIComponent(short)}?width=${size}&height=${size}&seed=${seed}&nologo=true`
 }
 
 /**
@@ -182,22 +184,28 @@ export async function generateImage(
   prompt: string,
   exampleId?: string,
 ): Promise<ImageGenResult> {
-  // 1. Try HuggingFace Inference API (best quality, needs token)
+  // 1. Try HuggingFace Inference API (if token available)
   if (config.huggingfaceToken) {
     try {
       return await generateViaHuggingFace(prompt, exampleId)
     } catch (err) {
-      console.warn('HuggingFace failed, falling back to Pollinations:', err)
+      const errMsg = (err as Error).message
+      // Only log if it's not the deprecation error
+      if (errMsg !== 'HF_DEPRECATED') {
+        console.warn('HuggingFace failed, falling back to Pollinations:', errMsg)
+      }
+      // Continue to fallback
     }
   }
 
-  // 2. Pollinations.ai (free, no token needed)
+  // 2. Pollinations.ai (free, no token needed, always works)
   return generateViaPollinations(prompt, exampleId)
 }
 
-// ─── HuggingFace Inference API (FLUX.1-schnell) ─────────────────
+// ─── HuggingFace Inference API (Stable Diffusion XL) ─────────────────
 
-const HF_MODEL = 'black-forest-labs/FLUX.1-schnell'
+// Using SDXL for better reliability and availability
+const HF_MODEL = 'stabilityai/stable-diffusion-xl-base-1.0'
 const HF_API = `https://api-inference.huggingface.co/models/${HF_MODEL}`
 
 async function generateViaHuggingFace(
@@ -205,7 +213,12 @@ async function generateViaHuggingFace(
   exampleId?: string,
   opts?: { seed?: number },
 ): Promise<ImageGenResult> {
-  const params: Record<string, unknown> = { width: 512, height: 512, num_inference_steps: 4 }
+  const params: Record<string, unknown> = { 
+    width: 512, 
+    height: 512, 
+    num_inference_steps: 25,
+    guidance_scale: 7.5
+  }
   if (opts?.seed !== undefined) params.seed = opts.seed
 
   const res = await fetch(HF_API, {
@@ -219,6 +232,13 @@ async function generateViaHuggingFace(
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => '')
+    
+    // Check for common API messages
+    if (errBody.includes('moved') || errBody.includes('deprecated') || errBody.includes('updated')) {
+      console.warn('HuggingFace model deprecated/moved, using fallback')
+      throw new Error('HF_DEPRECATED')
+    }
+    
     if (res.status === 503) {
       // Model cold-starting — parse estimated time
       try {
@@ -229,7 +249,9 @@ async function generateViaHuggingFace(
         throw new Error('Modell wird geladen – bitte in ~30s erneut versuchen.')
       }
     }
-    throw new Error(`HuggingFace API Fehler (${res.status}): ${errBody.slice(0, 200)}`)
+    
+    console.warn('HuggingFace error:', errBody.slice(0, 300))
+    throw new Error(`HuggingFace nicht verfügbar – verwende Pollinations`)
   }
 
   const blob = await res.blob()
@@ -255,7 +277,7 @@ async function generateViaPollinations(
   const shortPrompt = prompt.length > 500 ? prompt.slice(0, 500) : prompt
   const encodedPrompt = encodeURIComponent(shortPrompt)
   const seed = opts?.seed ?? Math.floor(Math.random() * 2_147_483_647)
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=512&height=512&seed=${seed}&model=flux&nologo=true`
+  const imageUrl = `https://pollinations.ai/p/${encodedPrompt}?width=512&height=512&seed=${seed}&nologo=true`
 
   // Pollinations serves the image directly at the URL.
   // Return it without fetching to avoid CORS/timeout issues.

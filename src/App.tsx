@@ -13,6 +13,7 @@ import QuizPage from './pages/QuizPage'
 import NewspaperPage from './pages/NewspaperPage'
 import GrammarPage from './pages/GrammarPage'
 import GrammarTestPage from './pages/GrammarTestPage'
+import WritingPage from './pages/WritingPage'
 import { configureImageService } from './services/imageService'
 import { preloadCategoryCache } from './services/categoryCache'
 
@@ -45,6 +46,7 @@ function App() {
             <Route path="/newspaper" element={<NewspaperPage />} />
             <Route path="/grammar" element={<GrammarPage />} />
             <Route path="/grammar-test" element={<GrammarTestPage />} />
+            <Route path="/writing" element={<WritingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/auth" element={<AuthPage />} />
           </Route>

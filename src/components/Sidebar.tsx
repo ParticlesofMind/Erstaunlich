@@ -1,4 +1,4 @@
-import { Search, Heart, BookOpen, LogIn, LogOut, User, Brain, Newspaper, BookMarked } from 'lucide-react'
+import { Search, Heart, BookOpen, LogIn, LogOut, User, Brain, Newspaper, BookMarked, MessageCircle } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '../contexts/AuthContext'
 
@@ -16,6 +16,7 @@ const sections = [
       { id: '/stories', label: 'Kurzgeschichten', icon: BookOpen },
       { id: '/newspaper', label: 'Zeitungen', icon: Newspaper },
       { id: '/grammar', label: 'Grammatik', icon: BookMarked },
+      { id: '/writing', label: 'Schreiben', icon: MessageCircle },
     ],
   },
   {
