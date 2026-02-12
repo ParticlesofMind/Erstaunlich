@@ -21,6 +21,138 @@ export default function StoryReader({ story }: Props) {
   const [popup, setPopup] = useState<PopupState | null>(null)
   const navigate = useNavigate()
 
+  const normalizeStoryText = useCallback((text: string) => {
+    const stopWords = new Set([
+      'der',
+      'die',
+      'das',
+      'den',
+      'dem',
+      'des',
+      'ein',
+      'eine',
+      'einer',
+      'einem',
+      'einen',
+      'und',
+      'oder',
+      'aber',
+      'doch',
+      'nicht',
+      'nur',
+      'auch',
+      'noch',
+      'schon',
+      'sehr',
+      'so',
+      'zu',
+      'zum',
+      'zur',
+      'im',
+      'in',
+      'am',
+      'an',
+      'auf',
+      'aus',
+      'bei',
+      'mit',
+      'ohne',
+      'von',
+      'vom',
+      'vor',
+      'unter',
+      'gegen',
+      'fuer',
+      'nach',
+      'bis',
+      'als',
+      'da',
+      'dass',
+      'weil',
+      'wenn',
+      'wie',
+      'wer',
+      'was',
+      'wo',
+      'dann',
+      'denn',
+      'ja',
+      'nein',
+      'ich',
+      'du',
+      'er',
+      'sie',
+      'es',
+      'wir',
+      'ihr',
+      'mich',
+      'dich',
+      'sich',
+      'ihn',
+      'ihm',
+      'uns',
+      'euch',
+      'mein',
+      'dein',
+      'sein',
+      'unser',
+      'euer',
+      'dies',
+      'diese',
+      'dieser',
+      'dieses',
+    ])
+
+    const letterRegex = /^[A-Za-zÄÖÜäöüß]+$/
+
+    const normalizeLine = (line: string) => {
+      let cleaned = line
+        .replace(/\s+([,.;:!?])/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+      cleaned = cleaned.replace(
+        /(?:\b[A-Za-zÄÖÜäöüß]\s+){2,}[A-Za-zÄÖÜäöüß]\b/g,
+        (match) => match.replace(/\s+/g, '')
+      )
+
+      const tokens = cleaned.split(' ').filter(Boolean)
+      const merged: string[] = []
+
+      for (const token of tokens) {
+        if (merged.length === 0) {
+          merged.push(token)
+          continue
+        }
+
+        const prev = merged[merged.length - 1]
+        const prevLower = prev.toLowerCase()
+        const tokenLower = token.toLowerCase()
+
+        const shouldMerge =
+          letterRegex.test(prev) &&
+          letterRegex.test(token) &&
+          !stopWords.has(prevLower) &&
+          !stopWords.has(tokenLower) &&
+          (prev.length <= 2 || token.length <= 2)
+
+        if (shouldMerge) {
+          merged[merged.length - 1] = `${prev}${token}`
+        } else {
+          merged.push(token)
+        }
+      }
+
+      return merged.join(' ')
+    }
+
+    return text
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map((line) => normalizeLine(line))
+      .join('\n')
+  }, [])
+
   const handleDoubleClick = useCallback((_e: React.MouseEvent<HTMLDivElement>) => {
     // Get the word the user double-clicked on
     const selection = window.getSelection()
@@ -43,11 +175,12 @@ export default function StoryReader({ story }: Props) {
   }, [])
 
   // Estimate reading time (~200 words/min for German)
-  const wordCount = story.text.split(/\s+/).length
+  const normalizedText = normalizeStoryText(story.text)
+  const wordCount = normalizedText.split(/\s+/).length
   const readingMinutes = Math.max(1, Math.round(wordCount / 200))
 
   // Split text into paragraphs, removing standalone page numbers
-  const paragraphs = story.text
+  const paragraphs = normalizedText
     .split('\n')
     .filter((p) => {
       const trimmed = p.trim()
