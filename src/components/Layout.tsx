@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import BottomTabs from './BottomTabs'
 import Sidebar from './Sidebar'
+import TopMenu from './TopMenu'
 
 export default function Layout() {
   return (
@@ -9,9 +10,14 @@ export default function Layout() {
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 min-w-0">
-        <Outlet />
-      </main>
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top menu */}
+        <TopMenu />
+        
+        <main className="flex-1">
+          <Outlet />
+        </main>
+      </div>
 
       {/* Mobile bottom tabs */}
       <BottomTabs />

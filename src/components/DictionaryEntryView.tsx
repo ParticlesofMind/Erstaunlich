@@ -1,6 +1,8 @@
+import { useNavigate } from 'react-router-dom'
 import { Bookmark, BookmarkCheck, Volume2, RotateCcw } from 'lucide-react'
 import type { DictionaryEntry } from '../types/database'
 import AiImage from './AiImage'
+import { mockEntries } from '../data/mockData'
 
 interface Props {
   entry: DictionaryEntry
@@ -48,6 +50,7 @@ function HighlightedText({ text, highlight }: { text: string; highlight: string 
 }
 
 export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorite, onBack }: Props) {
+  const navigate = useNavigate()
   const { word, definitions, examples } = entry
 
   const sortedDefinitions = [...definitions].sort((a, b) => a.order - b.order)
@@ -76,6 +79,22 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
     utterance.rate = 0.85
     window.speechSynthesis.speak(utterance)
   }
+
+  const handleRelatedClick = (term: string) => {
+    const normalized = term.trim().toLowerCase()
+    const mockMatch = mockEntries.find((entry) => entry.word.word.toLowerCase() === normalized)
+    if (mockMatch) {
+      navigate(`/word/${mockMatch.word.id}`)
+      return
+    }
+    navigate(`/word/wk-${encodeURIComponent(term)}`)
+  }
+
+  const etymologySteps = word.etymology?.length
+    ? (word.etymology[word.etymology.length - 1].toLowerCase().includes(word.word.toLowerCase())
+        ? word.etymology
+        : [...word.etymology, word.word])
+    : []
 
   return (
     <div className="max-w-4xl mx-auto pb-8">
@@ -114,7 +133,7 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
             {word.article && word.word_type === 'Substantiv' ? (
               <>
-                <span className="text-2xl md:text-3xl font-medium text-brand-500 mr-2">{word.article}</span>
+                <span className="text-2xl md:text-3xl font-bold text-brand-500 mr-2">{word.article}</span>
                 {word.word}
               </>
             ) : word.word}
@@ -140,6 +159,49 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
               <FrequencyMeter level={word.frequency} />
             </div>
           </div>
+
+          {/* Etymology */}
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Etymologie</h2>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {etymologySteps.length > 0 ? (
+                etymologySteps.map((step, index) => (
+                  <div key={`${step}-${index}`} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-700 bg-gray-100 rounded-full px-2 py-1">
+                      {step}
+                    </span>
+                    {index < etymologySteps.length - 1 && (
+                      <span className="text-xs text-gray-300">-&gt;</span>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <span className="text-xs text-gray-500">Keine Etymologie verfugbar.</span>
+              )}
+            </div>
+          </div>
+
+          {/* Pronunciation */}
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Aussprache</h2>
+            <div className="flex items-center gap-3 mt-2">
+              <button onClick={playPronunciation} className="p-2 rounded-full bg-brand-100 hover:bg-brand-200 transition-colors active:scale-95" aria-label="Aussprache abspielen">
+                <Volume2 className="w-5 h-5 text-brand-600" />
+              </button>
+              <span className="text-base text-gray-700">
+                {word.pronunciation.split(' - ').map((syl, i, arr) => (
+                  <span key={i}>
+                    {i === 1 ? (
+                      <span className="font-semibold text-brand-600">{syl}</span>
+                    ) : (
+                      <span>{syl}</span>
+                    )}
+                    {i < arr.length - 1 && <span className="mx-1 text-gray-400">-</span>}
+                  </span>
+                ))}
+              </span>
+            </div>
+          </div>
         </div>
         
         {/* Main word illustration */}
@@ -154,31 +216,9 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
         </div>
       </div>
 
-      {/* Pronunciation */}
-      <section className="px-6 mt-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Aussprache</h2>
-        <div className="flex items-center gap-3">
-          <button onClick={playPronunciation} className="p-2 rounded-full bg-brand-100 hover:bg-brand-200 transition-colors active:scale-95" aria-label="Aussprache abspielen">
-            <Volume2 className="w-5 h-5 text-brand-600" />
-          </button>
-          <span className="text-base text-gray-700">
-            {word.pronunciation.split(' - ').map((syl, i, arr) => (
-              <span key={i}>
-                {i === 1 ? (
-                  <span className="font-semibold text-brand-600">{syl}</span>
-                ) : (
-                  <span>{syl}</span>
-                )}
-                {i < arr.length - 1 && <span className="mx-1 text-gray-400">-</span>}
-              </span>
-            ))}
-          </span>
-        </div>
-      </section>
-
       {/* Definitions */}
-      <section className="px-6 mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Bedeutung</h2>
+      <section className="px-6 mt-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-3">Bedeutung</h2>
         <div className="space-y-3">
           {sortedDefinitions.map((def, i) => {
             const defExamples = examplesByDefinition.get(def.id) || []
@@ -195,12 +235,17 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
                     </button>
                   </div>
                   {defExamples.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {defExamples.map((ex) => (
-                        <div key={ex.id} className="bg-gray-50 rounded-xl p-4">
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            <HighlightedText text={ex.text} highlight={ex.highlighted_word} />
-                          </p>
+                    <div className="mt-2 space-y-1">
+                      {defExamples.map((ex, exIndex) => (
+                        <div key={ex.id} className="bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-xs font-medium text-gray-400 mt-0.5">
+                              {i + 1}.{exIndex + 1}
+                            </span>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              <HighlightedText text={ex.text} highlight={ex.highlighted_word} />
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -214,20 +259,22 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
 
       {/* Synonyms & Antonyms */}
       {(word.synonyms.length > 0 || word.antonyms.length > 0) && (
-        <section className="px-6 mt-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Synonyme & Gegenteile</h2>
+        <section className="px-6 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">Synonyme & Gegenteile</h2>
           {word.synonyms.length > 0 && (
             <div className="mb-2">
               <div className="flex items-start gap-2">
                 <span className="text-sm text-gray-400 mt-0.5">≡</span>
                 <div className="flex flex-wrap gap-1.5">
                   {word.synonyms.map((s) => (
-                    <span
+                    <button
                       key={s}
+                      type="button"
+                      onClick={() => handleRelatedClick(s)}
                       className="text-sm text-brand-600 underline decoration-brand-200 underline-offset-2 cursor-pointer hover:decoration-brand-400 transition-colors"
                     >
                       {s}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -239,12 +286,14 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
                 <span className="text-sm text-gray-400 mt-0.5">≠</span>
                 <div className="flex flex-wrap gap-1.5">
                   {word.antonyms.map((a) => (
-                    <span
+                    <button
                       key={a}
+                      type="button"
+                      onClick={() => handleRelatedClick(a)}
                       className="text-sm text-gray-600 underline decoration-gray-300 underline-offset-2 cursor-pointer hover:decoration-gray-500 transition-colors"
                     >
                       {a}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -255,8 +304,8 @@ export default function DictionaryEntryView({ entry, isFavorite, onToggleFavorit
 
       {/* Conjugation for verbs */}
       {word.conjugation && word.word_type === 'Verb' && (
-        <section className="px-6 mt-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Konjugation</h2>
+        <section className="px-6 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">Konjugation</h2>
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">3. Person Präsens</span>

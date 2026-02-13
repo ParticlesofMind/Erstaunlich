@@ -584,6 +584,11 @@ export const mockEntries: DictionaryEntry[] = [
       article: 'das',
       plural: 'Theater',
       conjugation: null,
+      etymology: [
+        'griech. theatron "Schauplatz"',
+        'lat. theatrum',
+        'frz. theatre',
+      ],
       synonyms: ['Schauplatz', 'Bühne'],
       antonyms: [],
       created_at: new Date().toISOString(),

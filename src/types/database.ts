@@ -222,6 +222,8 @@ export interface Word {
     pastParticiple: string
     auxiliary: string
   } | null
+  /** Etymology chain from origin to modern form */
+  etymology?: string[]
   audio_url?: string
   synonyms: string[]
   antonyms: string[]
